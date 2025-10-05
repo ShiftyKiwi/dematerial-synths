@@ -11,13 +11,13 @@
         "InternalName": "DEMATSYNTH",
         "RepoUrl": "https://github.com/lewizard14/dematerial-synths/tree/main",
         "DownloadCount": 1,
-        "LastUpdate": 1758919834,
-        "DownloadLinkInstall": "https://raw.githubusercontent.com/lewizard14/dematerial-synths/refs/heads/main/versions/0.0.0.2/latest.zip",
-        "DownloadLinkUpdate": "https://raw.githubusercontent.com/lewizard14/dematerial-synths/refs/heads/main/versions/0.0.0.2/latest.zip",
-        "AssemblyVersion": "0.0.0.2",
+        "LastUpdate": 1759119834,
+        "DownloadLinkInstall": "https://raw.githubusercontent.com/lewizard14/dematerial-synths/refs/heads/main/versions/0.0.0.3/latest.zip",
+        "DownloadLinkUpdate": "https://raw.githubusercontent.com/lewizard14/dematerial-synths/refs/heads/main/versions/0.0.0.3/latest.zip",
+        "AssemblyVersion": "0.0.0.3",
         "ApplicableVersion": "any",
         "DalamudApiLevel": "13",
-        "Changelog": "Init2.0",
+        "Changelog": "Init3.0",
         "IconUrl": "https://lds-img.finalfantasyxiv.com/itemicon/d3/d39282b94e7b81ace695f7be897da57ace560935.png?n7.31"
     }
 ]

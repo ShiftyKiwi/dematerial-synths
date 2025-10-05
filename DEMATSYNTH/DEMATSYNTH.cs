@@ -3,6 +3,7 @@ using ECommons.Configuration;
 using System.Collections.Generic;
 using DEMATSYNTH.Config;
 using DEMATSYNTH.Ui;
+using DEMATSYNTH.ContextMenus;
 
 namespace DEMATSYNTH;
 
@@ -81,6 +82,7 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
         // IceIpc = new();
 
         // all the windows
+        ContextSubMenuOptions.Init();
         windowSystem = new();
         mainWindow = new();
         settingsWindow = new();
