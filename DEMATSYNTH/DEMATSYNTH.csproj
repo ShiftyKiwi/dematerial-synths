@@ -1,7 +1,7 @@
 <Project Sdk="Dalamud.NET.Sdk/14.0.2">
 
   <PropertyGroup>
-    <Version>0.0.0.8</Version>
+    <Version>0.0.0.9</Version>
     <Description>A little helper that lets you retrieval of all materia and then desynth an item.</Description>
     <PackageProjectUrl>https://github.com/ShiftyKiwi/dematerial-synths</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>

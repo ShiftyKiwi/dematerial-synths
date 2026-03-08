@@ -113,7 +113,7 @@ jobs:
               AssemblyVersion = $pluginJson.AssemblyVersion
               ApplicableVersion = $pluginJson.ApplicableVersion
               DalamudApiLevel = $pluginJson.DalamudApiLevel
-              Changelog = "Track native Retrieve Materia progress by the item's remaining materia and continue into desynthesis once retrieval finishes."
+              Changelog = "Use the game's Materialize event for repeated materia retrieval instead of driving the Materialize UI, then continue into desynthesis."
               IconUrl = $pluginJson.IconUrl
               IsHide = $false
               IsTestingExclusive = $false

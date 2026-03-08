@@ -1,16 +1,16 @@
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Inventory;
 using ECommons;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
 using System;
 using ECommons.UIHelpers.AddonMasterImplementations;
 using static DEMATSYNTH.Enums.DMSState;
 using static ECommons.UIHelpers.AddonMasterImplementations.AddonMaster;
-using AddonCallback = ECommons.Automation.Callback;
 using ECommonsSalvageResult = ECommons.UIHelpers.AddonMasterImplementations.AddonMaster.SalvageResult;
 using Item = Lumina.Excel.Sheets.Item;
 
@@ -38,6 +38,7 @@ internal static unsafe class SchedulerMain
     private static uint targetBaseItemId;
     private static int remainingMateriaCount;
     private static bool hasObservedRetrieveProgress;
+    private static int lastRequestedMateriaCount;
     private static DateTime stateStartedAtUtc;
     private static DateTime lastUiActionAtUtc;
     private static DateTime lastRetrieveProgressAtUtc;
@@ -63,6 +64,7 @@ internal static unsafe class SchedulerMain
         targetBaseItemId = item.BaseItemId;
         remainingMateriaCount = GetRetrievableMateriaCount(item);
         hasObservedRetrieveProgress = false;
+        lastRequestedMateriaCount = 0;
         TargetName = string.IsNullOrWhiteSpace(targetName) ? ResolveItemName(item) : targetName;
         lastUiActionAtUtc = DateTime.MinValue;
         lastRetrieveProgressAtUtc = DateTime.UtcNow;
@@ -72,8 +74,7 @@ internal static unsafe class SchedulerMain
 
         if (shouldRetrieve)
         {
-            SetState(WaitingForRetrieveCompletion, $"Waiting for materia retrieval on {TargetName}...");
-            return true;
+            return TryStartMateriaRetrieval(item);
         }
 
         return TryOpenDesynthesis();
@@ -93,6 +94,7 @@ internal static unsafe class SchedulerMain
         shouldDesynth = false;
         remainingMateriaCount = 0;
         hasObservedRetrieveProgress = false;
+        lastRequestedMateriaCount = 0;
         lastUiActionAtUtc = DateTime.MinValue;
         lastRetrieveProgressAtUtc = DateTime.MinValue;
         return true;
@@ -113,9 +115,6 @@ internal static unsafe class SchedulerMain
 
         switch (State)
         {
-            case WaitingForRetrieveDialog:
-                TickWaitingForRetrieveDialog();
-                break;
             case WaitingForRetrieveCompletion:
                 TickWaitingForRetrieveCompletion();
                 break;
@@ -134,27 +133,6 @@ internal static unsafe class SchedulerMain
     internal static bool CanRetrieveMateria(GameInventoryItem item)
     {
         return GetRetrievableMateriaCount(item) > 0;
-    }
-
-    private static void TickWaitingForRetrieveDialog()
-    {
-        if (TryHandleRetrieveDialog())
-        {
-            return;
-        }
-
-        if (!GenericHelpers.IsOccupied() && TryGetLiveTargetItem(out var item) && CanRetrieveMateria(item))
-        {
-            if (TrySelectNextMateria())
-            {
-                return;
-            }
-        }
-
-        if (HasTimedOut(DialogOpenTimeout))
-        {
-            Fail("The retrieve materia UI did not open.");
-        }
     }
 
     private static void TickWaitingForRetrieveCompletion()
@@ -187,6 +165,7 @@ internal static unsafe class SchedulerMain
             {
                 remainingMateriaCount = currentMateriaCount;
                 hasObservedRetrieveProgress = true;
+                lastRequestedMateriaCount = 0;
                 lastRetrieveProgressAtUtc = DateTime.UtcNow;
                 stateStartedAtUtc = DateTime.UtcNow;
                 StatusMessage = $"Retrieved materia from {TargetName}; {currentMateriaCount} remaining.";
@@ -196,7 +175,8 @@ internal static unsafe class SchedulerMain
 
             if (hasObservedRetrieveProgress
                 && DateTime.UtcNow - lastRetrieveProgressAtUtc > TimeSpan.FromMilliseconds(750)
-                && TrySelectNextMateria())
+                && currentMateriaCount != lastRequestedMateriaCount
+                && TryStartMateriaRetrieval(item))
             {
                 return;
             }
@@ -208,11 +188,6 @@ internal static unsafe class SchedulerMain
                     : "Materia retrieval did not finish.");
             }
 
-            return;
-        }
-
-        if (TryCloseRetrieveWindow())
-        {
             return;
         }
 
@@ -326,31 +301,30 @@ internal static unsafe class SchedulerMain
         return true;
     }
 
-    private static bool TrySelectNextMateria()
+    private static bool TryStartMateriaRetrieval(GameInventoryItem item)
     {
-        if (!CanIssueUiAction() || !TryGetMaterializeAddon(out var addon))
+        if (!CanIssueUiAction())
         {
             return false;
         }
 
-        AddonCallback.Fire(addon, true, 2, 0);
-        lastUiActionAtUtc = DateTime.UtcNow;
-        StatusMessage = $"Selecting the next materia for {TargetName}...";
-        LoggingUtil.Debug(StatusMessage);
-        return true;
-    }
-
-    private static bool TryCloseRetrieveWindow()
-    {
-        if (!CanIssueUiAction() || !TryGetMaterializeAddon(out var addon))
+        if (!TryGetInventoryItemPointer(item, out var inventoryItem))
         {
+            Fail("The target item no longer has a valid inventory address.");
             return false;
         }
 
-        AddonCallback.Fire(addon, true, -1);
+        var eventFramework = EventFramework.Instance();
+        if (eventFramework == null)
+        {
+            Fail("Could not access the materialize event framework.");
+            return false;
+        }
+
+        eventFramework->MaterializeItem(inventoryItem, MaterializeEntryId.Retrieve);
+        lastRequestedMateriaCount = Math.Max(GetRetrievableMateriaCount(item), 1);
         lastUiActionAtUtc = DateTime.UtcNow;
-        StatusMessage = $"Closing Retrieve Materia for {TargetName}...";
-        LoggingUtil.Debug(StatusMessage);
+        SetState(WaitingForRetrieveCompletion, $"Retrieving materia from {TargetName}...");
         return true;
     }
 
@@ -428,20 +402,9 @@ internal static unsafe class SchedulerMain
         return false;
     }
 
-    private static bool TryGetMaterializeAddon(out AtkUnitBase* addon)
-    {
-        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("Materialize", out addon) && addon->IsVisible)
-        {
-            return true;
-        }
-
-        addon = null;
-        return false;
-    }
-
     private static bool TryGetVisibleAddonMaster<T>(string addonName, out T addonMaster) where T : class, IAddonMasterBase
     {
-        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>(addonName, out var addon) && addon->IsVisible)
+        if (GenericHelpers.TryGetAddonByName<FFXIVClientStructs.FFXIV.Component.GUI.AtkUnitBase>(addonName, out var addon) && addon->IsVisible)
         {
             addonMaster = (T)Activator.CreateInstance(typeof(T), (nint)addon)!;
             return true;
@@ -466,14 +429,6 @@ internal static unsafe class SchedulerMain
     private static bool HasTimedOut(TimeSpan timeout)
     {
         return DateTime.UtcNow - stateStartedAtUtc > timeout;
-    }
-
-    internal static void NotifyRetrieveTriggered()
-    {
-        if (State == WaitingForRetrieveCompletion)
-        {
-            SetState(WaitingForRetrieveCompletion, $"Retrieving materia from {TargetName}...");
-        }
     }
 
     private static bool CanIssueUiAction()
