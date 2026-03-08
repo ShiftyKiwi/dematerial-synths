@@ -4,10 +4,12 @@ using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
 using System;
 using static DEMATSYNTH.Enums.DMSState;
 using static ECommons.UIHelpers.AddonMasterImplementations.AddonMaster;
+using AddonCallback = ECommons.Automation.Callback;
 using ECommonsSalvageResult = ECommons.UIHelpers.AddonMasterImplementations.AddonMaster.SalvageResult;
 using Item = Lumina.Excel.Sheets.Item;
 
@@ -17,6 +19,7 @@ internal static unsafe class SchedulerMain
 {
     private static readonly TimeSpan DialogOpenTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ActionTimeout = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan UiActionThrottle = TimeSpan.FromMilliseconds(500);
 
     internal static bool DebugOOMMain = false;
     internal static bool DebugOOMSub = false;
@@ -33,6 +36,7 @@ internal static unsafe class SchedulerMain
     private static int targetSlot;
     private static uint targetBaseItemId;
     private static DateTime stateStartedAtUtc;
+    private static DateTime lastUiActionAtUtc;
 
     internal static bool Start(GameInventoryItem item, string targetName, bool retrieveMateria, bool desynth)
     {
@@ -54,6 +58,7 @@ internal static unsafe class SchedulerMain
         targetSlot = (int)item.InventorySlot;
         targetBaseItemId = item.BaseItemId;
         TargetName = string.IsNullOrWhiteSpace(targetName) ? ResolveItemName(item) : targetName;
+        lastUiActionAtUtc = DateTime.MinValue;
 
         LastResult = $"Working on {TargetName}.";
         ReportChat($"Starting {BuildOperationDescription()} for {TargetName}.");
@@ -79,6 +84,7 @@ internal static unsafe class SchedulerMain
         LastResult = reason;
         shouldRetrieve = false;
         shouldDesynth = false;
+        lastUiActionAtUtc = DateTime.MinValue;
         return true;
     }
 
@@ -137,6 +143,14 @@ internal static unsafe class SchedulerMain
             return;
         }
 
+        if (!GenericHelpers.IsOccupied() && TryGetLiveTargetItem(out var item) && CanRetrieveMateria(item))
+        {
+            if (TrySelectNextMateria())
+            {
+                return;
+            }
+        }
+
         if (HasTimedOut(DialogOpenTimeout))
         {
             Fail("The Retrieve Materia dialog did not open.");
@@ -168,11 +182,21 @@ internal static unsafe class SchedulerMain
 
         if (CanRetrieveMateria(item))
         {
+            if (TrySelectNextMateria())
+            {
+                return;
+            }
+
             if (HasTimedOut(ActionTimeout))
             {
                 Fail("Materia retrieval did not finish.");
             }
 
+            return;
+        }
+
+        if (TryCloseRetrieveWindow())
+        {
             return;
         }
 
@@ -286,6 +310,34 @@ internal static unsafe class SchedulerMain
         return true;
     }
 
+    private static bool TrySelectNextMateria()
+    {
+        if (!CanIssueUiAction() || !TryGetMaterializeAddon(out var addon))
+        {
+            return false;
+        }
+
+        AddonCallback.Fire(addon, true, 2, 0);
+        lastUiActionAtUtc = DateTime.UtcNow;
+        StatusMessage = $"Selecting the next materia for {TargetName}...";
+        LoggingUtil.Debug(StatusMessage);
+        return true;
+    }
+
+    private static bool TryCloseRetrieveWindow()
+    {
+        if (!CanIssueUiAction() || !TryGetMaterializeAddon(out var addon))
+        {
+            return false;
+        }
+
+        AddonCallback.Fire(addon, true, -1);
+        lastUiActionAtUtc = DateTime.UtcNow;
+        StatusMessage = $"Closing Retrieve Materia for {TargetName}...";
+        LoggingUtil.Debug(StatusMessage);
+        return true;
+    }
+
     private static bool TryGetLiveTargetItem(out GameInventoryItem item)
     {
         var inventoryItems = Svc.GameInventory.GetInventoryItems(targetContainerType);
@@ -306,6 +358,17 @@ internal static unsafe class SchedulerMain
         return inventoryItem != null;
     }
 
+    private static bool TryGetMaterializeAddon(out AtkUnitBase* addon)
+    {
+        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("Materialize", out addon) && GenericHelpers.IsAddonReady(addon))
+        {
+            return true;
+        }
+
+        addon = null;
+        return false;
+    }
+
     private static AgentSalvage* GetSalvageAgent()
     {
         var uiModule = (UIModule*)Svc.GameGui.GetUIModule().Address;
@@ -321,6 +384,11 @@ internal static unsafe class SchedulerMain
     private static bool HasTimedOut(TimeSpan timeout)
     {
         return DateTime.UtcNow - stateStartedAtUtc > timeout;
+    }
+
+    private static bool CanIssueUiAction()
+    {
+        return DateTime.UtcNow - lastUiActionAtUtc >= UiActionThrottle;
     }
 
     private static void SetState(DMSState state, string status)

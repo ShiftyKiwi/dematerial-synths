@@ -5,7 +5,7 @@
   "Description": "A little helper that lets you retrieval of all materia and then desynth an item.",
   "InternalName": "DEMATSYNTH",
   "ApplicableVersion": "any",
-  "AssemblyVersion": "0.0.0.5",
+  "AssemblyVersion": "0.0.0.6",
   "DalamudApiLevel": 14,
   "Tags": [
     "Materia",
