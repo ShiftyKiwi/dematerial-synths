@@ -36,8 +36,11 @@ internal static unsafe class SchedulerMain
     private static GameInventoryType targetContainerType;
     private static int targetSlot;
     private static uint targetBaseItemId;
+    private static int remainingMateriaCount;
+    private static bool hasObservedRetrieveProgress;
     private static DateTime stateStartedAtUtc;
     private static DateTime lastUiActionAtUtc;
+    private static DateTime lastRetrieveProgressAtUtc;
 
     internal static bool Start(GameInventoryItem item, string targetName, bool retrieveMateria, bool desynth)
     {
@@ -58,15 +61,18 @@ internal static unsafe class SchedulerMain
         targetContainerType = item.ContainerType;
         targetSlot = (int)item.InventorySlot;
         targetBaseItemId = item.BaseItemId;
+        remainingMateriaCount = GetRetrievableMateriaCount(item);
+        hasObservedRetrieveProgress = false;
         TargetName = string.IsNullOrWhiteSpace(targetName) ? ResolveItemName(item) : targetName;
         lastUiActionAtUtc = DateTime.MinValue;
+        lastRetrieveProgressAtUtc = DateTime.UtcNow;
 
         LastResult = $"Working on {TargetName}.";
         ReportChat($"Starting {BuildOperationDescription()} for {TargetName}.");
 
         if (shouldRetrieve)
         {
-            SetState(WaitingForRetrieveDialog, $"Waiting for Retrieve Materia for {TargetName}...");
+            SetState(WaitingForRetrieveCompletion, $"Waiting for materia retrieval on {TargetName}...");
             return true;
         }
 
@@ -85,7 +91,10 @@ internal static unsafe class SchedulerMain
         LastResult = reason;
         shouldRetrieve = false;
         shouldDesynth = false;
+        remainingMateriaCount = 0;
+        hasObservedRetrieveProgress = false;
         lastUiActionAtUtc = DateTime.MinValue;
+        lastRetrieveProgressAtUtc = DateTime.MinValue;
         return true;
     }
 
@@ -124,7 +133,7 @@ internal static unsafe class SchedulerMain
 
     internal static bool CanRetrieveMateria(GameInventoryItem item)
     {
-        return !item.IsEmpty && item.MateriaEntries.Count > 0;
+        return GetRetrievableMateriaCount(item) > 0;
     }
 
     private static void TickWaitingForRetrieveDialog()
@@ -166,16 +175,37 @@ internal static unsafe class SchedulerMain
             return;
         }
 
-        if (CanRetrieveMateria(item))
+        var currentMateriaCount = GetRetrievableMateriaCount(item);
+        if (currentMateriaCount > remainingMateriaCount)
         {
-            if (TrySelectNextMateria())
+            remainingMateriaCount = currentMateriaCount;
+        }
+
+        if (currentMateriaCount > 0)
+        {
+            if (currentMateriaCount < remainingMateriaCount)
+            {
+                remainingMateriaCount = currentMateriaCount;
+                hasObservedRetrieveProgress = true;
+                lastRetrieveProgressAtUtc = DateTime.UtcNow;
+                stateStartedAtUtc = DateTime.UtcNow;
+                StatusMessage = $"Retrieved materia from {TargetName}; {currentMateriaCount} remaining.";
+                LoggingUtil.Debug(StatusMessage);
+                return;
+            }
+
+            if (hasObservedRetrieveProgress
+                && DateTime.UtcNow - lastRetrieveProgressAtUtc > TimeSpan.FromMilliseconds(750)
+                && TrySelectNextMateria())
             {
                 return;
             }
 
             if (HasTimedOut(ActionTimeout))
             {
-                Fail("Materia retrieval did not finish.");
+                Fail(hasObservedRetrieveProgress
+                    ? "Additional materia remain, but the next retrieve step did not start."
+                    : "Materia retrieval did not finish.");
             }
 
             return;
@@ -344,6 +374,25 @@ internal static unsafe class SchedulerMain
         return inventoryItem != null;
     }
 
+    private static int GetRetrievableMateriaCount(GameInventoryItem item)
+    {
+        if (item.IsEmpty)
+        {
+            return 0;
+        }
+
+        var count = 0;
+        foreach (var materiaId in item.Materia)
+        {
+            if (materiaId != 0)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     private static bool TryHandleRetrieveDialog()
     {
         if (TryGetVisibleAddonMaster<MateriaRetrieveDialog>("MateriaRetrieveDialog", out var retrieveDialog))
@@ -417,6 +466,14 @@ internal static unsafe class SchedulerMain
     private static bool HasTimedOut(TimeSpan timeout)
     {
         return DateTime.UtcNow - stateStartedAtUtc > timeout;
+    }
+
+    internal static void NotifyRetrieveTriggered()
+    {
+        if (State == WaitingForRetrieveCompletion)
+        {
+            SetState(WaitingForRetrieveCompletion, $"Retrieving materia from {TargetName}...");
+        }
     }
 
     private static bool CanIssueUiAction()

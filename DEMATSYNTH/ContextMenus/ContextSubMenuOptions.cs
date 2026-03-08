@@ -73,6 +73,12 @@ internal static unsafe class ContextSubMenuOptions
         if (shouldRetrieve && !TrySelectCurrentContextEntry(RetrieveMateriaEntryNames))
         {
             SchedulerMain.DisablePlugin("Could not find the game's Retrieve Materia entry for this item.");
+            return;
+        }
+
+        if (shouldRetrieve)
+        {
+            SchedulerMain.NotifyRetrieveTriggered();
         }
     }
 

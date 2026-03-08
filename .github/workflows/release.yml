@@ -113,7 +113,7 @@ jobs:
               AssemblyVersion = $pluginJson.AssemblyVersion
               ApplicableVersion = $pluginJson.ApplicableVersion
               DalamudApiLevel = $pluginJson.DalamudApiLevel
-              Changelog = "Fix retrieve/desynthesis UI detection so the automation can see the actual materialize and salvage popups before continuing."
+              Changelog = "Track native Retrieve Materia progress by the item's remaining materia and continue into desynthesis once retrieval finishes."
               IconUrl = $pluginJson.IconUrl
               IsHide = $false
               IsTestingExclusive = $false
