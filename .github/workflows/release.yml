@@ -113,7 +113,7 @@ jobs:
               AssemblyVersion = $pluginJson.AssemblyVersion
               ApplicableVersion = $pluginJson.ApplicableVersion
               DalamudApiLevel = $pluginJson.DalamudApiLevel
-              Changelog = "Update for Dalamud API 14 and .NET 10."
+              Changelog = "Implement the retrieve-materia and desynthesis workflow with configurable automation settings."
               IconUrl = $pluginJson.IconUrl
               IsHide = $false
               IsTestingExclusive = $false

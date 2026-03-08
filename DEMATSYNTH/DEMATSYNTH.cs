@@ -1,9 +1,9 @@
-using ECommons.Automation.NeoTaskManager;
 using ECommons.Configuration;
 using System.Collections.Generic;
 using DEMATSYNTH.Config;
 using DEMATSYNTH.Ui;
 using DEMATSYNTH.ContextMenus;
+using DEMATSYNTH.Scheduler;
 
 namespace DEMATSYNTH;
 
@@ -11,7 +11,7 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
 {
     public static string Name => "DEMATSYNTH";
     internal static DEMATSYNTH P = null!;
-    // private readonly Configuration Config;
+    internal readonly Configuration Config;
 
     // Yaml Config Loaders. For both loading a yaml in the config folder, and for embedded
     private static T LoadConfig<T>() where T : IYamlConfig, new()
@@ -51,9 +51,6 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
     // internal OverlayWindow overlayWindow;
     // internal DebugWindow debugWindow;
 
-    // Taskmanager from Ecommons
-    internal TaskManager TaskManager;
-
     // // Internal IPC's that I use for... well plugins. 
     // internal LifestreamIPC Lifestream;
     // internal NavmeshIPC Navmesh;
@@ -69,8 +66,9 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
         ECommonsMain.Init(pi, P, Module.DalamudReflector, ECommons.Module.ObjectFunctions);
         // PictoService.Initialize(pi);
 
-        // EzConfig.Migrate<Configuration>();
-        // Config = EzConfig.Init<Configuration>();
+        Config = pi.GetPluginConfig() as Configuration ?? new();
+        Config.Initialize(pi);
+        Config.Save();
 
         // //IPC's that are used
         // Lifestream = new();
@@ -94,8 +92,6 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
             """);
         Init();
         Svc.Framework.Update += Tick;
-
-        // TaskManager = new(new(showDebug: false));
         Svc.PluginInterface.UiBuilder.Draw += windowSystem.Draw;
         Svc.PluginInterface.UiBuilder.OpenMainUi += () =>
         {
@@ -117,13 +113,11 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
     {
         if (Svc.Objects.LocalPlayer != null)
         {
-            // PlayerHandlers.Tick();
-            // if (SchedulerMain.State != IceState.Idle)
-            //     SchedulerMain.Tick();
+            SchedulerMain.Tick();
         }
         else
         {
-            // PlayerHandlers.DisablePlugin();
+            SchedulerMain.DisablePlugin("Player unavailable.");
         }
         // GenericManager.Tick();
         // TextAdvancedManager.Tick();
@@ -134,6 +128,9 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
     {
         GenericHelpers.Safe(() => Svc.Framework.Update -= Tick);
         GenericHelpers.Safe(() => Svc.PluginInterface.UiBuilder.Draw -= windowSystem.Draw);
+        GenericHelpers.Safe(ContextSubMenuOptions.Dispose);
+        GenericHelpers.Safe(mainWindow.Dispose);
+        GenericHelpers.Safe(settingsWindow.Dispose);
         // GenericHelpers.Safe(TextAdvancedManager.UnlockTA);
         // GenericHelpers.Safe(YesAlreadyManager.Unlock);
         ECommonsMain.Dispose();
@@ -157,11 +154,21 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
             // debugWindow.IsOpen = true;
             return;
         }
-        // else if (firstArg.ToLower() == "s" || firstArg.ToLower() == "settings")
-        // {
-        //     settingsWindowV2.IsOpen = !settingsWindowV2.IsOpen;
-        //     return;
-        // }
+        else if (firstArg.ToLower() is "s" or "settings" or "config")
+        {
+            settingsWindow.IsOpen = !settingsWindow.IsOpen;
+            return;
+        }
+        else if (firstArg.ToLower() == "stop")
+        {
+            SchedulerMain.DisablePlugin("Stopped from command.");
+            return;
+        }
+        else if (firstArg.ToLower() == "status")
+        {
+            Svc.Chat.Print($"[DEMATSYNTH] {SchedulerMain.StatusMessage}");
+            return;
+        }
         // else if (firstArg.ToLower() == "clear")
         // {
         //     foreach (var mission in C.MissionConfig)
@@ -255,7 +262,13 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
         // }
         else if (firstArg.ToLower() == "help")
         {
-            string helpMessage = $"- - DEMATSYNTH Commands Help - - \n";
+            string helpMessage = """
+                [DEMATSYNTH] Commands:
+                /dematsynth - Open the main window
+                /dematsynth settings - Open settings
+                /dematsynth status - Print the current status
+                /dematsynth stop - Stop the active automation
+                """;
             Svc.Chat.Print(helpMessage);
         }
     }

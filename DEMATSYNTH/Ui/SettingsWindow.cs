@@ -1,27 +1,24 @@
-using Dalamud.Interface.Internal.Windows.Settings;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Lumina.Excel.Sheets;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using DEMATSYNTH.Scheduler;
 using DEMATSYNTH.Ui.SettingTabs;
 
 namespace DEMATSYNTH.Ui;
 
 internal class SettingsWindow : Window
 {
-    public SettingsWindow() : 
+    private readonly string[] settingOptions = ["Retrieve Materia", "Desynthesis"];
+    private string selectedSetting = "Retrieve Materia";
+
+    public SettingsWindow() :
         base($"Retrieve Materia & Desynthesis Settings {P.GetType().Assembly.GetName().Version} ###MESettingsWindow")
     {
         Flags = ImGuiWindowFlags.None;
         SizeConstraints = new()
         {
-            MinimumSize = new Vector2(100, 100),
-            MaximumSize = new Vector2(2000, 2000),
+            MinimumSize = new Vector2(520, 320),
+            MaximumSize = new Vector2(1600, 1200),
         };
+
         P.windowSystem.AddWindow(this);
         AllowPinning = true;
     }
@@ -31,89 +28,119 @@ internal class SettingsWindow : Window
         P.windowSystem.RemoveWindow(this);
     }
 
-    private string SelectedSetting = "Retrieve Materia";
-    private string[] SettingOptions = ["Retrieve Materia", "Desynthesis"];
-    private string[] DebugOptions = ["Debug"];
-
     public override void Draw()
     {
-        float paddingX = 20f;
-        float paddingY = 5f;
-        Vector2 textSize = new Vector2(0.0f);
-
-        foreach (var setting in SettingOptions)
+        if (ImGui.BeginChild("SettingsNav", new Vector2(180, 0), true))
         {
-            Vector2 testText = ImGui.CalcTextSize(setting);
-            
-            if (testText.X > textSize.X)
+            foreach (var setting in settingOptions)
             {
-                textSize = testText;
-            }
-        }
-
-#if DEBUG
-        foreach (var setting in DebugOptions)
-        {
-            Vector2 testText = ImGui.CalcTextSize(setting);
-
-            if (testText.X > textSize.X)
-            {
-                textSize = testText;
-            }
-        }
-#endif
-
-        Vector2 buttonSize = new Vector2(textSize.X + paddingX * 2, textSize.Y + paddingY * 2);
-
-        // New child windows
-        // LEFT PANEL
-        if (ImGui.BeginChild("LeftPanel", new Vector2(buttonSize.X + 20, 0), true))
-        {
-            foreach (var setting in SettingOptions)
-            {
-                if (ImGui.Button(setting, buttonSize))
+                if (ImGui.Button(setting, new Vector2(ImGui.GetContentRegionAvail().X, 0)))
                 {
-                    SelectedSetting = setting;
+                    selectedSetting = setting;
                 }
             }
 
 #if DEBUG
-            foreach (var setting in DebugOptions)
+            if (ImGui.Button("Debug", new Vector2(ImGui.GetContentRegionAvail().X, 0)))
             {
-                if (ImGui.Button(setting, buttonSize))
-                {
-                    SelectedSetting = setting;
-                }
+                selectedSetting = "Debug";
             }
 #endif
 
             ImGui.EndChild();
         }
 
-        // RIGHT PANEL (same line so it appears to the right)
         ImGui.SameLine();
 
-        if (ImGui.BeginChild("RightPanel", new System.Numerics.Vector2(0, 0), true)) // 0 width = fill remaining
+        if (ImGui.BeginChild("SettingsContent", new Vector2(0, 0), true))
         {
-            if (SelectedSetting == SettingOptions[0])
-                ImGui.Text($"WIP.");
-#if DEBUG
-            else if (SelectedSetting == DebugOptions[0])
-                DebugTab.Draw();
-#endif
-            else
+            switch (selectedSetting)
             {
-                ImGui.Text($"Hmm... Maybe should put a dad joke here. For now it's empty.");
+                case "Retrieve Materia":
+                    DrawRetrieveSettings();
+                    break;
+                case "Desynthesis":
+                    DrawDesynthesisSettings();
+                    break;
+#if DEBUG
+                case "Debug":
+                    DebugTab.Draw();
+                    break;
+#endif
             }
 
             ImGui.EndChild();
         }
-
     }
 
-#if DEBUG
+    private static void DrawRetrieveSettings()
+    {
+        ImGui.TextWrapped("Controls how the inventory context-menu action handles melded items before desynthesis.");
+        ImGui.Separator();
 
+        DrawCheckbox(
+            "Enable inventory context-menu action",
+            P.Config.EnableContextMenu,
+            value => P.Config.EnableContextMenu = value);
 
-#endif
+        DrawCheckbox(
+            "Retrieve attached materia before desynthing",
+            P.Config.RetrieveMateriaBeforeDesynth,
+            value => P.Config.RetrieveMateriaBeforeDesynth = value);
 
+        using (ImRaii.Disabled(!P.Config.RetrieveMateriaBeforeDesynth))
+        {
+            DrawCheckbox(
+                "Auto-confirm the Retrieve Materia dialog",
+                P.Config.AutoConfirmRetrieveMateria,
+                value => P.Config.AutoConfirmRetrieveMateria = value);
+        }
+
+        ImGui.Spacing();
+        ImGui.TextWrapped("If this phase is enabled, `Dematerialize It` selects the game's native `Retrieve Materia` action for the clicked inventory item before moving on.");
+    }
+
+    private static void DrawDesynthesisSettings()
+    {
+        ImGui.TextWrapped("Controls the desynthesis half of the plugin and what happens after materia retrieval finishes.");
+        ImGui.Separator();
+
+        DrawCheckbox(
+            "Run desynthesis after retrieval",
+            P.Config.RunDesynthesis,
+            value => P.Config.RunDesynthesis = value);
+
+        using (ImRaii.Disabled(!P.Config.RunDesynthesis))
+        {
+            DrawCheckbox(
+                "Auto-confirm the desynthesis dialog",
+                P.Config.AutoConfirmDesynthesis,
+                value => P.Config.AutoConfirmDesynthesis = value);
+
+            DrawCheckbox(
+                "Auto-close the desynthesis result popup",
+                P.Config.AutoCloseDesynthesisResult,
+                value => P.Config.AutoCloseDesynthesisResult = value);
+        }
+
+        DrawCheckbox(
+            "Print status updates to chat",
+            P.Config.PrintChatStatus,
+            value => P.Config.PrintChatStatus = value);
+
+        ImGui.Spacing();
+        ImGui.TextWrapped($"Current scheduler status: {SchedulerMain.StatusMessage}");
+    }
+
+    private static void DrawCheckbox(string label, bool currentValue, Action<bool> setter)
+    {
+        var newValue = currentValue;
+        if (!ImGui.Checkbox(label, ref newValue))
+        {
+            return;
+        }
+
+        setter(newValue);
+        P.Config.Save();
+    }
 }

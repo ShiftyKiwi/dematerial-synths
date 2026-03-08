@@ -4,7 +4,9 @@ namespace DEMATSYNTH.Enums
     internal enum DMSState
     {
         Idle = 0,
-        Start = 1
-
+        WaitingForRetrieveDialog = 1,
+        WaitingForRetrieveCompletion = 2,
+        WaitingForDesynthDialog = 4,
+        WaitingForDesynthResult = 8,
     }
 }

@@ -1,346 +1,140 @@
+using Dalamud.Game.Gui.ContextMenu;
+using Dalamud.Game.Inventory;
+using ECommons;
+using ECommons.Automation;
 using ECommons.DalamudServices;
+using ECommons.UIHelpers.AtkReaderImplementations;
+using FFXIVClientStructs.FFXIV.Component.GUI;
+using Lumina.Excel.Sheets;
 using System;
 using System.Linq;
-using DEMATSYNTH.IPC;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using Dalamud.Bindings.ImGui;
-using Dalamud.Game.Gui.ContextMenu;
-using FFXIVClientStructs.FFXIV.Client.UI;
-using System.Collections.Generic;
-using ECommons;
+using DEMATSYNTH.Scheduler;
+using Callback = ECommons.Automation.Callback;
+using Item = Lumina.Excel.Sheets.Item;
 
 namespace DEMATSYNTH.ContextMenus;
 
-internal static class ContextSubMenuOptions
+internal static unsafe class ContextSubMenuOptions
 {
+    private static readonly string[] RetrieveMateriaEntryNames = ["Retrieve Materia"];
     private static IContextMenu? contextMenu;
-    private static Chat2IPC? Chat2IPC;
-
-    public const int SatisfactionSupplyItemIdx = 0x54;
-    public const int SatisfactionSupplyItem1Id = 0x80 + 1 * 0x3C;
-    public const int SatisfactionSupplyItem2Id = 0x80 + 2 * 0x3C;
-    public const int ContentsInfoDetailContextItemId = 0x17CC;
-    public const int RecipeNoteContextItemId = 0x398;
-    public const int AgentItemContextItemId = 0x28;
-    public const int GatheringNoteContextItemId = 0xA0;
-    public const int ItemSearchContextItemId = 0x17D0;
-    public const int ChatLogContextItemId = 0x948;
-
-    public const int SubmarinePartsMenuContextItemId = 0x54;
-    public const int ShopExchangeItemContextItemId = 0x54;
-    public const int ShopContextMenuItemId = 0x54;
-    public const int ShopExchangeCurrencyContextItemId = 0x54;
-    public const int HWDSupplyContextItemId = 0x38C;
-    public const int GrandCompanySupplyListContextItemId = 0x54;
-    public const int GrandCompanyExchangeContextItemId = 0x54;
-
 
     public static void Init()
     {
         contextMenu = Svc.ContextMenu;
         contextMenu.OnMenuOpened += AddMenu;
-
-        Chat2IPC = new(Svc.PluginInterface);
-        Chat2IPC.Enable();
-        Chat2IPC.OnOpenChatTwoItemContextMenu += AddChat2Menu;
-
-        Svc.Log.Debug($"Init Context Menus.");
+        LoggingUtil.Debug("Initialized inventory context menus.");
     }
 
-    private static void AddChat2Menu(uint ItemId)
+    private static void AddMenu(IMenuOpenedArgs args)
     {
-Svc.Log.Debug($"AddChat2Menu - " + ItemId);
-
-        // if (P.Config.HideContextMenus) return;
-
-        // if (!LuminaSheets.RecipeSheet.Values.Any(x => x.ItemResult.RowId == ItemId)) return;
-
-        // var recipeId = LuminaSheets.RecipeSheet.Values.First(x => x.ItemResult.RowId == ItemId).RowId;
-
-        // if (ImGui.Selectable($"Open Recipe Log"))
-        // {
-        //     CraftingListFunctions.OpenRecipeByID(recipeId);
-        // }
-    }
-
-    private static void AddInventoryMenu(IMenuOpenedArgs args)
-    {
-        // if (P.Config.HideContextMenus) return;
-
-
-    }
-
-    private unsafe static void AddMenu(IMenuOpenedArgs args)
-    {
-        Svc.Log.Debug($"{args.AddonName}");
-        // if (P.Config.HideContextMenus) return;
-        // if (args.AddonName != "RecipeNote")
-        // {
-            uint? itemId;
-            itemId = GetGameObjectItemId(args);
-            Svc.Log.Debug($"{itemId}");
-            // if (!LuminaSheets.RecipeSheet.Values.Any(x => x.ItemResult.RowId == itemId)) return;
-
-            // var recipeId = LuminaSheets.RecipeSheet.Values.First(x => x.ItemResult.RowId == itemId).RowId;
-
-            var menuItem = new MenuItem();
-            menuItem.Name = "Dematerialize It";
-            menuItem.PrefixChar = 'D';
-            menuItem.PrefixColor = 706;
-            menuItem.OnClicked += clickedArgs => Svc.Log.Debug($"AddMenu - " + itemId + "  " + clickedArgs);
-
-            args.AddMenuItem(menuItem);
-
-            // if (!LuminaSheets.RecipeSheet.Values.TryGetFirst(x => x.ItemResult.RowId == itemId, out var recipe)) return;
-
-            // bool ingredientsSubCraft = recipe.Ingredients().Any(x => CraftingListHelpers.GetIngredientRecipe(x.Item.RowId) != null);
-
-            // var subMenu = new MenuItem();
-            // subMenu.IsSubmenu = true;
-            // subMenu.Name = "Artisan Crafting List";
-            // subMenu.PrefixChar = 'A';
-            // subMenu.PrefixColor = 706;
-
-            // subMenu.OnClicked += args => OpenArtisanCraftingListSubmenu(args, itemId.Value, recipe.CraftType.RowId, ingredientsSubCraft);
-
-            // args.AddMenuItem(subMenu);
-        // }
-
-        // if (args.AddonName == "RecipeNote")
-        // {
-        //     IntPtr recipeNoteAgent = Svc.GameGui.FindAgentInterface(args.AddonName);
-        //     var ItemId = *(uint*)(recipeNoteAgent + 0x398);
-        //     var craftTypeIndex = *(uint*)(recipeNoteAgent + 944);
-
-        //     if (RetainerInfo.GetRetainerItemCount(ItemId) > 0 && RetainerInfo.GetReachableRetainerBell() != null)
-        //     {
-        //         int amountToGet = 1;
-        //         if (LuminaSheets.RecipeSheet[Endurance.RecipeID].ItemResult.RowId != ItemId)
-        //         {
-        //             amountToGet = LuminaSheets.RecipeSheet[Endurance.RecipeID].Ingredients().First(y => y.Item.RowId == ItemId).Amount;
-        //         }
-
-        //         var menuItem = new MenuItem();
-        //         menuItem.Name = "Withdraw from Retainer";
-        //         menuItem.PrefixChar = 'A';
-        //         menuItem.PrefixColor = 706;
-        //         menuItem.OnClicked += clickedArgs => RetainerInfo.RestockFromRetainers(ItemId, amountToGet);
-
-        //         args.AddMenuItem(menuItem);
-        //     }
-
-        //     if (!LuminaSheets.RecipeSheet.Values.TryGetFirst(x => x.ItemResult.RowId == ItemId, out var recipe)) return;
-
-        //     bool ingredientsSubCraft = recipe.Ingredients().Any(x => CraftingListHelpers.GetIngredientRecipe(x.Item.RowId) != null);
-
-        //     var subMenu = new MenuItem();
-        //     subMenu.IsSubmenu = true;
-        //     subMenu.Name = "Artisan Crafting List";
-        //     subMenu.PrefixChar = 'A';
-        //     subMenu.PrefixColor = 706;
-
-        //     subMenu.OnClicked += args => OpenArtisanCraftingListSubmenu(args, ItemId, craftTypeIndex, ingredientsSubCraft);
-
-        //     args.AddMenuItem(subMenu);
-        // }
-
-        // if (args.AddonName == "ChatLog")
-        // {
-        //     var ItemId = GetObjectItemId("ChatLog", 0x948);
-        //     if (ItemId > 500_000)
-        //         ItemId -= 500_000;
-
-        //     if (!LuminaSheets.RecipeSheet.Values.Any(x => x.ItemResult.RowId == ItemId)) return;
-
-        //     var recipeId = LuminaSheets.RecipeSheet.Values.First(x => x.ItemResult.RowId == ItemId).RowId;
-
-        //     var menuItem = new MenuItem();
-        //     menuItem.Name = "Open Recipe Log";
-        //     menuItem.PrefixChar = 'A';
-        //     menuItem.PrefixColor = 706;
-        //     menuItem.OnClicked += clickedArgs => CraftingListFunctions.OpenRecipeByID(recipeId, true);
-
-        //     args.AddMenuItem(menuItem);
-
-        // }
-    }
-
-    // private static unsafe void OpenArtisanCraftingListSubmenu(IMenuItemClickedArgs args, uint ItemId, uint craftTypeIndex, bool ingredientsSubCraft)
-    // {
-    //     var menuItems = new List<MenuItem>();
-    //     if (CraftingListUI.selectedList.ID == 0)
-    //     {
-    //         var menuItem = new MenuItem();
-    //         menuItem.Name = "Add to New Artisan Crafting List";
-    //         menuItem.PrefixChar = 'A';
-    //         menuItem.PrefixColor = 706;
-    //         menuItem.OnClicked += clickedArgs => AddToNewList(ItemId, craftTypeIndex);
-
-    //         menuItems.Add(menuItem);
-    //         if (ingredientsSubCraft)
-    //         {
-    //             var menuItem2 = new MenuItem();
-    //             menuItem2.Name = "Add to New Artisan Crafting List (with Sub-crafts)";
-    //             menuItem2.PrefixChar = 'A';
-    //             menuItem2.PrefixColor = 706;
-    //             menuItem2.OnClicked += clickedArgs => AddToNewList(ItemId, craftTypeIndex, true);
-
-    //             menuItems.Add(menuItem2);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         var menuItem = new MenuItem();
-    //         menuItem.Name = "Add to Current Artisan Crafting List";
-    //         menuItem.PrefixChar = 'A';
-    //         menuItem.PrefixColor = 706;
-    //         menuItem.OnClicked += clickedArgs => AddToList(ItemId, craftTypeIndex);
-
-    //         menuItems.Add(menuItem);
-    //         if (ingredientsSubCraft)
-    //         {
-    //             var menuItem2 = new MenuItem();
-    //             menuItem2.Name = "Add to Current Artisan Crafting List (with Sub-crafts)";
-    //             menuItem2.PrefixChar = 'A';
-    //             menuItem2.PrefixColor = 706;
-    //             menuItem2.OnClicked += clickedArgs => AddToList(ItemId, craftTypeIndex, true);
-
-    //             menuItems.Add(menuItem2);
-    //         }
-    //     }
-    //     if (menuItems.Count > 0)
-    //         args.OpenSubmenu(menuItems);
-    // }
-
-    private static uint? GetGameObjectItemId(IMenuOpenedArgs args)
-    {
-        var item = args.AddonName switch
+        if (!P.Config.EnableContextMenu)
         {
-            null => HandleNulls(),
-            "Shop" => GetObjectItemId("Shop", ShopContextMenuItemId),
-            "GrandCompanySupplyList" => GetObjectItemId("GrandCompanySupplyList", GrandCompanySupplyListContextItemId),
-            "GrandCompanyExchange" => GetObjectItemId("GrandCompanyExchange", GrandCompanyExchangeContextItemId),
-            "ShopExchangeCurrency" => GetObjectItemId("ShopExchangeCurrency", ShopExchangeCurrencyContextItemId),
-            "SubmarinePartsMenu" => GetObjectItemId("SubmarinePartsMenu", SubmarinePartsMenuContextItemId),
-            "ShopExchangeItem" => GetObjectItemId("ShopExchangeItem", ShopExchangeItemContextItemId),
-            "ContentsInfoDetail" => GetObjectItemId("ContentsInfo", ContentsInfoDetailContextItemId),
-            "RecipeNote" => GetObjectItemId("RecipeNote", RecipeNoteContextItemId),
-            "RecipeTree" => GetObjectItemId(AgentById(AgentId.RecipeItemContext), AgentItemContextItemId),
-            "RecipeMaterialList" => GetObjectItemId(AgentById(AgentId.RecipeItemContext), AgentItemContextItemId),
-            "RecipeProductList" => GetObjectItemId(AgentById(AgentId.RecipeItemContext), AgentItemContextItemId),
-            "GatheringNote" => GetObjectItemId("GatheringNote", GatheringNoteContextItemId),
-            "ItemSearch" => GetObjectItemId(args.AgentPtr, ItemSearchContextItemId),
-            "ChatLog" => GetObjectItemId("ChatLog", ChatLogContextItemId),
-            _ => null,
-        };
-        if (item == null)
-        {
-            var guiHoveredItem = Svc.GameGui.HoveredItem;
-            if (guiHoveredItem >= 2000000 || guiHoveredItem == 0) return null;
-            item = (uint)guiHoveredItem % 500_000;
+            return;
         }
 
-        return item;
-    }
-
-    private static unsafe IntPtr AgentById(AgentId id)
-    {
-        var uiModule = (UIModule*)Svc.GameGui.GetUIModule().Address;
-        var agents = uiModule->GetAgentModule();
-        var agent = agents->GetAgentByInternalId(id);
-        return (IntPtr)agent;
-    }
-
-    private static uint GetObjectItemId(uint ItemId)
-    {
-        if (ItemId > 500000)
-            ItemId -= 500000;
-
-        return ItemId;
-    }
-
-    private static unsafe uint? HandleSatisfactionSupply()
-    {
-        var agent = Svc.GameGui.FindAgentInterface("SatisfactionSupply");
-        if (agent == IntPtr.Zero)
-            return null;
-
-        var itemIdx = *(byte*)(agent + SatisfactionSupplyItemIdx);
-        return itemIdx switch
+        if (args.MenuType != ContextMenuType.Inventory || args.Target is not MenuTargetInventory inventoryTarget)
         {
-            1 => GetObjectItemId(*(uint*)(agent + SatisfactionSupplyItem1Id)),
-            2 => GetObjectItemId(*(uint*)(agent + SatisfactionSupplyItem2Id)),
-            _ => null,
+            return;
+        }
+
+        if (inventoryTarget.TargetItem is not { } targetItem || targetItem.IsEmpty)
+        {
+            return;
+        }
+
+        var shouldRetrieve = P.Config.RetrieveMateriaBeforeDesynth && SchedulerMain.CanRetrieveMateria(targetItem);
+        var shouldDesynth = P.Config.RunDesynthesis;
+        if (!shouldRetrieve && !shouldDesynth)
+        {
+            return;
+        }
+
+        var itemName = ResolveItemName(targetItem);
+        var menuItem = new MenuItem
+        {
+            Name = "Dematerialize It",
+            PrefixChar = 'D',
+            PrefixColor = 706,
+            IsEnabled = !SchedulerMain.IsBusy,
         };
+
+        menuItem.OnClicked += _ => OnClicked(targetItem, itemName, shouldRetrieve, shouldDesynth);
+        args.AddMenuItem(menuItem);
     }
-    private static unsafe uint? HandleHWDSupply()
+
+    private static void OnClicked(GameInventoryItem targetItem, string itemName, bool shouldRetrieve, bool shouldDesynth)
     {
-        var agent = Svc.GameGui.FindAgentInterface("HWDSupply");
-        if (agent == IntPtr.Zero)
-            return null;
+        if (!SchedulerMain.Start(targetItem, itemName, shouldRetrieve, shouldDesynth))
+        {
+            return;
+        }
 
-        return GetObjectItemId(*(uint*)(agent + HWDSupplyContextItemId));
+        if (shouldRetrieve && !TrySelectCurrentContextEntry(RetrieveMateriaEntryNames))
+        {
+            SchedulerMain.DisablePlugin("Could not find the game's Retrieve Materia entry for this item.");
+        }
     }
-    private static uint? HandleNulls()
+
+    private static bool TrySelectCurrentContextEntry(params string[] candidateTexts)
     {
-        var itemId = HandleSatisfactionSupply() ?? HandleHWDSupply();
-        return itemId;
+        var addon = GetOpenContextMenu();
+        if (addon == null || !GenericHelpers.IsAddonReady(addon))
+        {
+            return false;
+        }
+
+        var reader = new ReaderContextMenu(addon);
+        for (var i = 0; i < reader.Entries.Count; i++)
+        {
+            var entryName = reader.Entries[i].Name;
+            if (!MatchesEntry(entryName, candidateTexts))
+            {
+                continue;
+            }
+
+            Callback.Fire(addon, true, 0, i, 0);
+            LoggingUtil.Debug($"Selected native context entry '{entryName}' at index {i}.");
+            return true;
+        }
+
+        LoggingUtil.Warning($"Could not match any native context entry for: {string.Join(", ", candidateTexts)}");
+        return false;
     }
 
-    private unsafe static uint? GetObjectItemId(IntPtr agent, int offset)
-        => agent != IntPtr.Zero ? GetObjectItemId(*(uint*)(agent + offset)) : null;
+    private static bool MatchesEntry(string entryName, string[] candidateTexts)
+    {
+        return candidateTexts.Any(candidate =>
+            entryName.Equals(candidate, StringComparison.OrdinalIgnoreCase)
+            || entryName.Contains(candidate, StringComparison.OrdinalIgnoreCase));
+    }
 
-    private static uint? GetObjectItemId(string name, int offset)
-        => GetObjectItemId(Svc.GameGui.FindAgentInterface(name), offset);
+    private static AtkUnitBase* GetOpenContextMenu()
+    {
+        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("ContextIconMenu", out var iconMenu) && iconMenu->IsVisible)
+        {
+            return iconMenu;
+        }
 
-    // private static void AddToNewList(uint ItemId, uint craftType, bool withPrecraft = false)
-    // {
-    //     NewCraftingList list = new NewCraftingList();
-    //     list.Name = ItemId.NameOfItem();
-    //     list.SetID();
-    //     list.Save(true);
-    //     CraftingListUI.selectedList = list;
-    //     AddToList(ItemId, craftType, withPrecraft);
-    // }
+        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("ContextMenu", out var contextMenuAddon) && contextMenuAddon->IsVisible)
+        {
+            return contextMenuAddon;
+        }
 
-    // private static void AddToList(uint ItemId, uint craftType, bool withPrecraft = false)
-    // {
-    //     CraftingListUI.listMaterialsNew.Clear();
-    //     if (!LuminaSheets.RecipeSheet.Values.TryGetFirst(x => x.ItemResult.RowId == ItemId && x.CraftType.RowId == craftType, out var recipe))
-    //     {
-    //         recipe = LuminaSheets.RecipeSheet.Values.First(x => x.ItemResult.RowId == ItemId);
-    //     }
-    //     if (recipe.Number == 0) return;
-    //     if (withPrecraft)
-    //         CraftingListUI.AddAllSubcrafts(recipe, CraftingListUI.selectedList, 1, P.Config.ContextMenuLoops);
+        return null;
+    }
 
-
-    //     if (CraftingListUI.selectedList.Recipes.Any(x => x.ID == recipe.RowId))
-    //     {
-    //         CraftingListUI.selectedList.Recipes.First(x => x.ID == recipe.RowId).Quantity += P.Config.ContextMenuLoops;
-    //     }
-    //     else
-    //     {
-    //         CraftingListUI.selectedList.Recipes.Add(new ListItem() { ID = recipe.RowId, Quantity = P.Config.ContextMenuLoops, ListItemOptions = new ListItemOptions() { NQOnly = CraftingListUI.selectedList.AddAsQuickSynth } });   
-    //     }
-
-    //     CraftingListHelpers.TidyUpList(CraftingListUI.selectedList);
-    //     foreach (var w in P.ws.Windows)
-    //     {
-    //         if (w.WindowName == $"List Editor###{CraftingListUI.selectedList.ID}")
-    //         {
-    //             (w as ListEditor).RecipeSelector.Items = CraftingListUI.selectedList.Recipes.ToList();
-    //             (w as ListEditor).RefreshTable(null, true);
-    //         }
-    //     }
-
-    //     P.Config.Save();
-    // }
+    private static string ResolveItemName(GameInventoryItem item)
+    {
+        var sheet = Svc.Data.GetExcelSheet<Item>();
+        return sheet?.GetRow(item.BaseItemId).Name.ToString() ?? $"Item {item.BaseItemId}";
+    }
 
     public static void Dispose()
     {
-        contextMenu.OnMenuOpened -= AddMenu;
-        Chat2IPC.OnOpenChatTwoItemContextMenu -= AddChat2Menu;
-        Chat2IPC.Disable();
+        if (contextMenu != null)
+        {
+            contextMenu.OnMenuOpened -= AddMenu;
+        }
     }
 }

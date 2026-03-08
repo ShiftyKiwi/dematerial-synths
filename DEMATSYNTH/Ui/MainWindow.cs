@@ -1,117 +1,82 @@
-using Dalamud.Interface;
-using Dalamud.Interface.Colors;
-using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility.Raii;
-using ECommons.Automation;
-using ECommons.GameHelpers;
-using FFXIVClientStructs.FFXIV.Client.Game.WKS;
-// using ICE.Sounds;
-// using ICE.Utilities.Cosmic;
-// using SharpDX.D3DCompiler;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using DEMATSYNTH.Scheduler;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Windows.Forms.AxHost;
 
-namespace DEMATSYNTH.Ui
+namespace DEMATSYNTH.Ui;
+
+internal class MainWindow : Window
 {
-    internal class MainWindow : Window
-    {
-        public MainWindow() :
+    public MainWindow() :
 #if DEBUG
-        base($"Fun new things {P.GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion} Debug build###MEDebugMainWindowV2")
+        base($"Dematerial Desynthesis {P.GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion} ###DEMATSYNTHMainWindow")
 #else
-        base($"Fun new things {P.GetType().Assembly.GetName().Version} ###MEMainWindow2")
+        base($"Dematerial Desynthesis {P.GetType().Assembly.GetName().Version} ###DEMATSYNTHMainWindow")
 #endif
+    {
+        Flags = ImGuiWindowFlags.None;
+        SizeConstraints = new()
         {
-            Flags = ImGuiWindowFlags.None;
-            SizeConstraints = new()
-            {
-                MinimumSize = new Vector2(100, 100),
-                MaximumSize = new Vector2(4000, 4000),
-            };
-            TitleBarButtons.Add(new() { ShowTooltip = () => ImGui.SetTooltip("♥ Ko-fi (Buy me an ice coffee)"), Icon = FontAwesomeIcon.Heart, IconOffset = new(1, 1), Click = _ => GenericHelpers.ShellStart("https://ko-fi.com/") });
+            MinimumSize = new Vector2(420, 240),
+            MaximumSize = new Vector2(1200, 900),
+        };
 
-            P.windowSystem.AddWindow(this);
+        P.windowSystem.AddWindow(this);
+        AllowPinning = true;
+    }
 
-            AllowPinning = true;
-            AllowClickthrough = true;
+    public void Dispose()
+    {
+        P.windowSystem.RemoveWindow(this);
+    }
+
+    public override void Draw()
+    {
+        ImGui.TextWrapped("Right-click a melded or desynthable inventory item and choose `Dematerialize It` to run the configured automation.");
+        ImGui.Spacing();
+
+        if (ImGui.Button("Settings", new Vector2(140, 0)))
+        {
+            P.settingsWindow.IsOpen = !P.settingsWindow.IsOpen;
         }
 
-        public void Dispose()
-        {
-            P.windowSystem.RemoveWindow(this);
-        }
+        ImGui.SameLine();
 
-        public override void Draw()
+        using (ImRaii.Disabled(!SchedulerMain.IsBusy))
         {
-            if (ImGui.BeginTable("Main_Ui_Table", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.Resizable, ImGui.GetContentRegionAvail()))
+            if (ImGui.Button("Stop Current Run", new Vector2(140, 0)))
             {
-                ImGui.TableSetupColumn("Main Settings", ImGuiTableColumnFlags.WidthFixed, 200);
-                ImGui.TableSetupColumn("Mission Infomation", ImGuiTableColumnFlags.WidthFixed, 500);
-                ImGui.TableSetupColumn("Main Settings", ImGuiTableColumnFlags.WidthStretch);
-
-                ImGui.TableNextRow();
-                var currentAvail = ImGui.GetContentRegionAvail().Y - 5;
-                var childWindowSize = new Vector2(0, currentAvail);
-
-                ImGui.TableSetColumnIndex(0);
-                if (ImGui.BeginChild("Mission Settings Window", childWindowSize, true))
-                {
-                    LeftWindow();
-                }
-                ImGui.EndChild();
-
-                ImGui.TableSetColumnIndex(1);
-                if (ImGui.BeginChild("Mission Selection Window", childWindowSize, true))
-                {
-                    MiddleWindow();
-                }
-                ImGui.EndChild();
-
-                ImGui.TableSetColumnIndex(2);
-                if (ImGui.BeginChild("Mission Info Window", childWindowSize, true))
-                {
-                    RightWindow();
-                }
-                ImGui.EndChild();
-
-                ImGui.EndTable();
+                SchedulerMain.DisablePlugin("Stopped from the main window.");
             }
         }
 
-        #region Left Window
+        ImGui.Separator();
+        ImGui.TextUnformatted("Current Status");
+        ImGui.TextWrapped(SchedulerMain.StatusMessage);
+        ImGui.Spacing();
 
-        public void LeftWindow()
+        ImGui.TextUnformatted("Target");
+        ImGui.TextWrapped(SchedulerMain.TargetName);
+        ImGui.Spacing();
+
+        ImGui.TextUnformatted("Last Result");
+        ImGui.TextWrapped(SchedulerMain.LastResult);
+        ImGui.Spacing();
+
+        ImGui.TextUnformatted("Configured Behavior");
+        ImGui.TextWrapped(BuildBehaviorSummary());
+    }
+
+    private static string BuildBehaviorSummary()
+    {
+        var retrieve = P.Config.RetrieveMateriaBeforeDesynth;
+        var desynth = P.Config.RunDesynthesis;
+
+        return (retrieve, desynth) switch
         {
-          if (ImGui.Button("Settings", new Vector2(ImGui.GetContentRegionAvail().X, 30)))
-            {
-                P.settingsWindow.IsOpen = !P.settingsWindow.IsOpen;
-            }
-        }
-
-        #endregion
-
-        #region Middle Window
-
-        private void MiddleWindow()
-        {
-            
-        }
-
-        #endregion
-
-        #region Right Window
-
-        private void RightWindow()
-        {
-            
-        }
-
-        #endregion
-
+            (true, true) => "The context-menu action retrieves attached materia first, then opens and confirms desynthesis.",
+            (true, false) => "The context-menu action only retrieves attached materia.",
+            (false, true) => "The context-menu action skips materia retrieval and goes straight to desynthesis.",
+            _ => "The context-menu action is effectively disabled. Re-enable at least one phase in Settings.",
+        };
     }
 }
