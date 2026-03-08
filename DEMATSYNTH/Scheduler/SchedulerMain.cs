@@ -7,6 +7,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
 using System;
+using ECommons.UIHelpers.AddonMasterImplementations;
 using static DEMATSYNTH.Enums.DMSState;
 using static ECommons.UIHelpers.AddonMasterImplementations.AddonMaster;
 using AddonCallback = ECommons.Automation.Callback;
@@ -128,18 +129,8 @@ internal static unsafe class SchedulerMain
 
     private static void TickWaitingForRetrieveDialog()
     {
-        if (GenericHelpers.TryGetAddonMaster<MateriaRetrieveDialog>(out var dialog) && dialog.IsAddonReady)
+        if (TryHandleRetrieveDialog())
         {
-            if (P.Config.AutoConfirmRetrieveMateria)
-            {
-                dialog.Begin();
-                SetState(WaitingForRetrieveCompletion, $"Retrieving materia from {TargetName}...");
-            }
-            else
-            {
-                SetState(WaitingForRetrieveCompletion, $"Waiting for you to confirm Retrieve Materia for {TargetName}...");
-            }
-
             return;
         }
 
@@ -153,19 +144,14 @@ internal static unsafe class SchedulerMain
 
         if (HasTimedOut(DialogOpenTimeout))
         {
-            Fail("The Retrieve Materia dialog did not open.");
+            Fail("The retrieve materia UI did not open.");
         }
     }
 
     private static void TickWaitingForRetrieveCompletion()
     {
-        if (GenericHelpers.TryGetAddonMaster<MateriaRetrieveDialog>(out var dialog) && dialog.IsAddonReady)
+        if (TryHandleRetrieveDialog())
         {
-            if (P.Config.AutoConfirmRetrieveMateria)
-            {
-                dialog.Begin();
-            }
-
             return;
         }
 
@@ -211,7 +197,7 @@ internal static unsafe class SchedulerMain
 
     private static void TickWaitingForDesynthDialog()
     {
-        if (GenericHelpers.TryGetAddonMaster<SalvageDialog>(out var dialog) && dialog.IsAddonReady)
+        if (TryGetVisibleAddonMaster<SalvageDialog>("SalvageDialog", out var dialog))
         {
             if (P.Config.AutoConfirmDesynthesis)
             {
@@ -234,7 +220,7 @@ internal static unsafe class SchedulerMain
 
     private static void TickWaitingForDesynthResult()
     {
-        if (GenericHelpers.TryGetAddonMaster<SalvageDialog>(out var dialog) && dialog.IsAddonReady)
+        if (TryGetVisibleAddonMaster<SalvageDialog>("SalvageDialog", out var dialog))
         {
             if (P.Config.AutoConfirmDesynthesis)
             {
@@ -244,7 +230,7 @@ internal static unsafe class SchedulerMain
             return;
         }
 
-        if (GenericHelpers.TryGetAddonMaster<ECommonsSalvageResult>(out var result) && result.IsAddonReady)
+        if (TryGetVisibleAddonMaster<ECommonsSalvageResult>("SalvageResult", out var result))
         {
             if (P.Config.AutoCloseDesynthesisResult)
             {
@@ -255,7 +241,7 @@ internal static unsafe class SchedulerMain
             return;
         }
 
-        if (GenericHelpers.TryGetAddonMaster<SalvageAutoDialog>(out var autoDialog) && autoDialog.IsAddonReady && autoDialog.DesynthesisInactive)
+        if (TryGetVisibleAddonMaster<SalvageAutoDialog>("SalvageAutoDialog", out var autoDialog) && autoDialog.DesynthesisInactive)
         {
             if (P.Config.AutoCloseDesynthesisResult)
             {
@@ -358,14 +344,61 @@ internal static unsafe class SchedulerMain
         return inventoryItem != null;
     }
 
+    private static bool TryHandleRetrieveDialog()
+    {
+        if (TryGetVisibleAddonMaster<MateriaRetrieveDialog>("MateriaRetrieveDialog", out var retrieveDialog))
+        {
+            if (P.Config.AutoConfirmRetrieveMateria)
+            {
+                retrieveDialog.Begin();
+                SetState(WaitingForRetrieveCompletion, $"Retrieving materia from {TargetName}...");
+            }
+            else
+            {
+                SetState(WaitingForRetrieveCompletion, $"Waiting for you to confirm Retrieve Materia for {TargetName}...");
+            }
+
+            return true;
+        }
+
+        if (TryGetVisibleAddonMaster<MaterializeDialog>("MaterializeDialog", out var materializeDialog))
+        {
+            if (P.Config.AutoConfirmRetrieveMateria)
+            {
+                materializeDialog.Materialize();
+                SetState(WaitingForRetrieveCompletion, $"Retrieving materia from {TargetName}...");
+            }
+            else
+            {
+                SetState(WaitingForRetrieveCompletion, $"Waiting for you to confirm Retrieve Materia for {TargetName}...");
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool TryGetMaterializeAddon(out AtkUnitBase* addon)
     {
-        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("Materialize", out addon) && GenericHelpers.IsAddonReady(addon))
+        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("Materialize", out addon) && addon->IsVisible)
         {
             return true;
         }
 
         addon = null;
+        return false;
+    }
+
+    private static bool TryGetVisibleAddonMaster<T>(string addonName, out T addonMaster) where T : class, IAddonMasterBase
+    {
+        if (GenericHelpers.TryGetAddonByName<AtkUnitBase>(addonName, out var addon) && addon->IsVisible)
+        {
+            addonMaster = (T)Activator.CreateInstance(typeof(T), (nint)addon)!;
+            return true;
+        }
+
+        addonMaster = default!;
         return false;
     }
 

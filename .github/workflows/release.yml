@@ -113,7 +113,7 @@ jobs:
               AssemblyVersion = $pluginJson.AssemblyVersion
               ApplicableVersion = $pluginJson.ApplicableVersion
               DalamudApiLevel = $pluginJson.DalamudApiLevel
-              Changelog = "Fix the multi-materia retrieval loop so the plugin removes every materia and then proceeds into desynthesis."
+              Changelog = "Fix retrieve/desynthesis UI detection so the automation can see the actual materialize and salvage popups before continuing."
               IconUrl = $pluginJson.IconUrl
               IsHide = $false
               IsTestingExclusive = $false
