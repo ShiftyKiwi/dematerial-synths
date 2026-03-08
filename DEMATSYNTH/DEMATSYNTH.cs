@@ -115,7 +115,7 @@ public sealed partial class DEMATSYNTH : IDalamudPlugin
 
     private void Tick(object _)
     {
-        if (Svc.ClientState.LocalPlayer != null)
+        if (Svc.Objects.LocalPlayer != null)
         {
             // PlayerHandlers.Tick();
             // if (SchedulerMain.State != IceState.Idle)

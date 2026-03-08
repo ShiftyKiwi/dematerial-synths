@@ -1,23 +1,26 @@
 [
-    {
-        "Author": "Le Wizard",
-        "Name": "Dematerial Desynthesis",
-        "Punchline": "What if you could remove the materia when you desynth?",
-        "Description": "A little helper that lets you retrieval of all materia and then desynth an item.",
-        "Tags": [
-            "Materia",
-            "Desynthesis"
-        ],
-        "InternalName": "DEMATSYNTH",
-        "RepoUrl": "https://github.com/lewizard14/dematerial-synths/tree/main",
-        "DownloadCount": 1,
-        "LastUpdate": 1759119834,
-        "DownloadLinkInstall": "https://raw.githubusercontent.com/lewizard14/dematerial-synths/refs/heads/main/versions/0.0.0.3/latest.zip",
-        "DownloadLinkUpdate": "https://raw.githubusercontent.com/lewizard14/dematerial-synths/refs/heads/main/versions/0.0.0.3/latest.zip",
-        "AssemblyVersion": "0.0.0.3",
-        "ApplicableVersion": "any",
-        "DalamudApiLevel": "13",
-        "Changelog": "Init3.0",
-        "IconUrl": "https://lds-img.finalfantasyxiv.com/itemicon/d3/d39282b94e7b81ace695f7be897da57ace560935.png?n7.31"
-    }
+  {
+    "Author": "Le Wizard",
+    "Name": "Dematerial Desynthesis",
+    "Punchline": "What if you could remove the materia when you desynth?",
+    "Description": "A little helper that lets you retrieval of all materia and then desynth an item.",
+    "Tags": [
+      "Materia",
+      "Desynthesis"
+    ],
+    "InternalName": "DEMATSYNTH",
+    "RepoUrl": "https://github.com/ShiftyKiwi/dematerial-synths",
+    "DownloadCount": 0,
+    "LastUpdated": 1772914547,
+    "DownloadLinkInstall": "https://github.com/ShiftyKiwi/dematerial-synths/releases/latest/download/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/ShiftyKiwi/dematerial-synths/releases/latest/download/latest.zip",
+    "DownloadLinkTesting": "https://github.com/ShiftyKiwi/dematerial-synths/releases/latest/download/latest.zip",
+    "AssemblyVersion": "0.0.0.4",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": 14,
+    "Changelog": "Update for Dalamud API 14 and .NET 10.",
+    "IconUrl": "https://raw.githubusercontent.com/ShiftyKiwi/dematerial-synths/main/Data/icon.png",
+    "IsHide": false,
+    "IsTestingExclusive": false
+  }
 ]

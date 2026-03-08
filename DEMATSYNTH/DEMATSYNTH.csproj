@@ -1,21 +1,26 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/13.0">
+<Project Sdk="Dalamud.NET.Sdk/14.0.2">
 
   <PropertyGroup>
-    <Version>0.0.0.1</Version>
+    <Version>0.0.0.4</Version>
     <Description>A little helper that lets you retrieval of all materia and then desynth an item.</Description>
-    <PackageProjectUrl>https://github.com/goatcorp/DEMATSYNTH</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/ShiftyKiwi/dematerial-synths</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
-    <IsPackable>true</IsPackable>
+    <ApplicableVersion>any</ApplicableVersion>
+    <IsPackable>false</IsPackable>
     <RootNamespace>DEMATSYNTH</RootNamespace>
-    <TargetFramework>net9.0-windows</TargetFramework>
-    <InformationalVersion>$([System.DateTime]::UtcNow.ToString("yyyy\-MM\-dd HH\:mm\:ss"))</InformationalVersion>
-    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-	<NoWarn>CS8618; CS8625; CS8629; </NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <NoWarn>CS8618;CS8625;CS8629</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="DEMATSYNTH.json" />
+    <ProjectReference Include="..\ECommons\ECommons\ECommons.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,10 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
-      <ProjectReference Include="..\ECommons\ECommons\ECommons.csproj" />
+    <None Update="DEMATSYNTH.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
-	
-  <ItemGroup>
-    <PackageReference Update="DalamudPackager" Version="13.1.0" />
-  </ItemGroup>
+
 </Project>

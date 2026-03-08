@@ -1,0 +1,25 @@
+[
+  {
+    "Author": "Le Wizard",
+    "Name": "Dematerial Desynthesis",
+    "Punchline": "What if you could remove the materia when you desynth?",
+    "Description": "A little helper that lets you retrieval of all materia and then desynth an item.",
+    "InternalName": "DEMATSYNTH",
+    "AssemblyVersion": "0.0.0.4",
+    "RepoUrl": "https://github.com/ShiftyKiwi/dematerial-synths",
+    "ApplicableVersion": "any",
+    "Tags": [
+      "Materia",
+      "Desynthesis"
+    ],
+    "DalamudApiLevel": 14,
+    "DownloadLinkInstall": "https://github.com/ShiftyKiwi/dematerial-synths/releases/latest/download/latest.zip",
+    "IconUrl": "https://raw.githubusercontent.com/ShiftyKiwi/dematerial-synths/main/Data/icon.png",
+    "IsHide": false,
+    "IsTestingExclusive": false,
+    "DownloadLinkTesting": "https://github.com/ShiftyKiwi/dematerial-synths/releases/latest/download/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/ShiftyKiwi/dematerial-synths/releases/latest/download/latest.zip",
+    "DownloadCount": 0,
+    "LastUpdated": 1772914547
+  }
+]

@@ -1,0 +1,136 @@
+name: Release Build and Publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build release artifacts and update metadata
+    runs-on: windows-2022
+
+    env:
+      PLUGIN_NAME: DEMATSYNTH
+      SOLUTION_FILE: DEMATSYNTH.sln
+      DALAMUD_VERSION_URL: "https://goatcorp.github.io/dalamud-distrib/stg/latest.zip"
+      PLUGINMASTER_PATH: pluginmaster.json
+      LEGACY_MANIFEST_PATH: manifest.json
+
+    steps:
+      - name: Checkout and initialise
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.x.x"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Download and extract Dalamud
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "$env:AppData\XIVLauncher\addon\Hooks\dev" -Force | Out-Null
+          Invoke-WebRequest -Uri "${{ env.DALAMUD_VERSION_URL }}" -OutFile "dalamud.zip"
+          Expand-Archive -Path "dalamud.zip" -DestinationPath "$env:AppData\XIVLauncher\addon\Hooks\dev" -Force
+
+      - name: Build Release
+        shell: pwsh
+        run: |
+          dotnet restore ${{ env.SOLUTION_FILE }}
+          dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
+
+      - name: Prepare zip file
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path output -Force | Out-Null
+          Copy-Item "${{ env.PLUGIN_NAME }}/bin/Release/${{ env.PLUGIN_NAME }}/latest.zip" -Destination "output/latest.zip" -Force
+
+      - name: Upload zip to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/latest.zip
+
+      - name: Update plugin metadata
+        shell: pwsh
+        run: |
+          $pluginJsonPath = "${{ env.PLUGIN_NAME }}/bin/Release/${{ env.PLUGIN_NAME }}.json"
+          $pluginJson = Get-Content $pluginJsonPath -Raw | ConvertFrom-Json
+          $repoUrl = "https://github.com/${{ github.repository }}"
+          $downloadUrl = "$repoUrl/releases/latest/download/latest.zip"
+          $lastUpdated = [int][DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+
+          $pluginMaster = @(
+            [ordered]@{
+              Author = $pluginJson.Author
+              Name = $pluginJson.Name
+              Punchline = $pluginJson.Punchline
+              Description = $pluginJson.Description
+              InternalName = $pluginJson.InternalName
+              AssemblyVersion = $pluginJson.AssemblyVersion
+              RepoUrl = $repoUrl
+              ApplicableVersion = $pluginJson.ApplicableVersion
+              Tags = $pluginJson.Tags
+              DalamudApiLevel = $pluginJson.DalamudApiLevel
+              DownloadLinkInstall = $downloadUrl
+              IconUrl = $pluginJson.IconUrl
+              IsHide = $false
+              IsTestingExclusive = $false
+              DownloadLinkTesting = $downloadUrl
+              DownloadLinkUpdate = $downloadUrl
+              DownloadCount = 0
+              LastUpdated = $lastUpdated
+            }
+          )
+
+          $legacyManifest = @(
+            [ordered]@{
+              Author = $pluginJson.Author
+              Name = $pluginJson.Name
+              Punchline = $pluginJson.Punchline
+              Description = $pluginJson.Description
+              Tags = $pluginJson.Tags
+              InternalName = $pluginJson.InternalName
+              RepoUrl = $repoUrl
+              DownloadCount = 0
+              LastUpdated = $lastUpdated
+              DownloadLinkInstall = $downloadUrl
+              DownloadLinkUpdate = $downloadUrl
+              DownloadLinkTesting = $downloadUrl
+              AssemblyVersion = $pluginJson.AssemblyVersion
+              ApplicableVersion = $pluginJson.ApplicableVersion
+              DalamudApiLevel = $pluginJson.DalamudApiLevel
+              Changelog = "Update for Dalamud API 14 and .NET 10."
+              IconUrl = $pluginJson.IconUrl
+              IsHide = $false
+              IsTestingExclusive = $false
+            }
+          )
+
+          git fetch origin main
+          git checkout main
+          $pluginMaster | ConvertTo-Json -Depth 100 -AsArray | Set-Content "${{ env.PLUGINMASTER_PATH }}"
+          $legacyManifest | ConvertTo-Json -Depth 100 -AsArray | Set-Content "${{ env.LEGACY_MANIFEST_PATH }}"
+
+      - name: Commit and push metadata
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ${{ env.PLUGINMASTER_PATH }} ${{ env.LEGACY_MANIFEST_PATH }}
+          git diff --cached --quiet && exit 0
+          git commit -m "Update plugin metadata for ${{ github.event.release.tag_name }}"
+          git push origin HEAD:main

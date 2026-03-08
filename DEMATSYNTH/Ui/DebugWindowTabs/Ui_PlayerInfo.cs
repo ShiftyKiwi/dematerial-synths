@@ -27,7 +27,7 @@ namespace DEMATSYNTH.Ui.DebugWindowTabs
                 ImGui.SetClipboardText($"{Player.Position.X:N2}f, {Player.Position.Y:N2}f, {Player.Position.Z:N2}f");
             }
             ImGui.Text($"Job: {Player.Job}");
-            ImGui.Text($"JobId: {Player.JobId}");
+            ImGui.Text($"JobId: {Player.ClassJob.RowId}");
             ImGui.Text($"Current Territory/ZoneId: {Player.Territory}");
             if (Svc.Targets.Target != null)
             {
@@ -36,9 +36,9 @@ namespace DEMATSYNTH.Ui.DebugWindowTabs
                 {
                     ImGui.SetClipboardText(currentTarget.Name.ToString());
                 }
-                if (ImGui.Button($"Id: {currentTarget.DataId}"))
+                if (ImGui.Button($"Id: {currentTarget.BaseId}"))
                 {
-                    ImGui.SetClipboardText(currentTarget.DataId.ToString());
+                    ImGui.SetClipboardText(currentTarget.BaseId.ToString());
                 }
                 if (ImGui.Button($"Position: X: {currentTarget.Position.X:N2}, Y: {currentTarget.Position.Y:N2}, Z: {currentTarget.Position.Z:N2}"))
                 {
