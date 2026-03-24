@@ -4,7 +4,6 @@ namespace DEMATSYNTH.Utilities;
 
 internal static class LoggingUtil
 {
-    private static string _lastVerboseMessage, _lastDebugMessage, _lastInfoMessage = string.Empty;
 
     private static string GetCallerPrefix()
     {

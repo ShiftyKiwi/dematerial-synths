@@ -36,7 +36,7 @@ namespace DEMATSYNTH.IPC
 
         private string _id = string.Empty;
 
-        public Action<uint>? OnOpenChatTwoItemContextMenu;
+        public event Action<uint>? OnOpenChatTwoItemContextMenu;
 
         public void Enable()
         {
@@ -80,7 +80,7 @@ namespace DEMATSYNTH.IPC
                 return;
             }
 
-            OnOpenChatTwoItemContextMenu(item.ItemId);
+            OnOpenChatTwoItemContextMenu?.Invoke(item.ItemId);
         }
     }
 }
