@@ -5,7 +5,7 @@
   "Description": "A little helper that lets you retrieval of all materia and then desynth an item.",
   "InternalName": "DEMATSYNTH",
   "ApplicableVersion": "any",
-  "AssemblyVersion": "0.0.0.10",
+  "AssemblyVersion": "0.0.0.11",
   "DalamudApiLevel": 14,
   "Tags": [
     "Materia",
@@ -14,5 +14,6 @@
   "IconUrl": "https://raw.githubusercontent.com/ShiftyKiwi/dematerial-synths/main/Data/icon.png",
   "RepoUrl": "https://github.com/ShiftyKiwi/dematerial-synths"
 }
+
 
 

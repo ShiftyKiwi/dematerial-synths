@@ -11,16 +11,17 @@
     "InternalName": "DEMATSYNTH",
     "RepoUrl": "https://github.com/ShiftyKiwi/dematerial-synths",
     "DownloadCount": 0,
-    "LastUpdated": 1774369865,
+    "LastUpdated": 1774370197,
     "DownloadLinkInstall": "https://github.com/ShiftyKiwi/dematerial-synths/releases/latest/download/latest.zip",
     "DownloadLinkUpdate": "https://github.com/ShiftyKiwi/dematerial-synths/releases/latest/download/latest.zip",
     "DownloadLinkTesting": "https://github.com/ShiftyKiwi/dematerial-synths/releases/latest/download/latest.zip",
-    "AssemblyVersion": "0.0.0.10",
+    "AssemblyVersion": "0.0.0.11",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 14,
-    "Changelog": "Use the game's Materialize event for repeated materia retrieval instead of driving the Materialize UI, then continue into desynthesis.",
+    "Changelog": "Maintenance: remove unused fields and make Chat2 IPC callback null-safe. Validated for FFXIV Patch 7.45 HotFix Patch 2 on March 24, 2026.",
     "IconUrl": "https://raw.githubusercontent.com/ShiftyKiwi/dematerial-synths/main/Data/icon.png",
     "IsHide": false,
     "IsTestingExclusive": false
   }
 ]
+
